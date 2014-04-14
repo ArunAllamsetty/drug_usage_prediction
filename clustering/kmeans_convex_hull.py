@@ -1,9 +1,11 @@
+#from __future__ import division
 import numpy as np
-import random
+import random, re
 
 # Constants
-POINTS_FILE = 'point.txt'
+POINTS_FILE = 'points.txt'
 HULLS_FILE = 'hulls.txt'
+CLUS_FILE = 'clusters.txt'
 
 ############################################################################################################
 # KMeans clustering from http://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/ #
@@ -88,31 +90,61 @@ def plot_hull(hull, sample):
     pylab.show()
 
 ############################################################################################################
+# Prediction
+############################################################################################################
+
+def predict(ys, index, data):
+    y_predicted = 0
+    for i in range(index, 1, -1):
+        y_predicted += data[str(i - 1)] * (i - 1)
+    return y_predicted / sum(range(1, index))
+
+def predict_all(drugs_per_clus, index):
+    epsilons = {}
+
+    clusters = drugs_per_clus.keys()
+    clusters.sort()
+    for i in range(0, len(clusters)):
+        cluster = clusters[i]
+        ys = drugs_per_clus[cluster].keys()
+        ys.sort()
+        data = drugs_per_clus[cluster]
+        prediction = predict(ys, index, data)
+        drugs_per_clus[cluster][str(index)] = prediction
+
+        epsilon = 0
+        for j in range(3, index):
+            epsilon += data[str(j + 1)] - predict(ys, j + 1, data)
+        epsilons[i + 1] = int(epsilon)
+
+    return drugs_per_clus, epsilons
+
+############################################################################################################
 
 def append_to_file(file_loc, data):
     with open(file_loc, 'a') as output:
         output.write(data)
 
 def get_color(i):
-    if i == 0:
-        return '#FF0000'
-    elif i == 1:
-        return '#00FF00'
-    elif i == 2:
-        return '#0000FF'
-    elif i == 3:
-        return '#FFFF00'
-    elif i == 4:
-        return '#00FFFF'
-    elif i == 5:
-        return '#FF00FF'
+    if i < 5000:
+        return '#1a9850'
+    elif i < 10000:
+        return '#66bd63'
+    elif i < 15000:
+        return '#a6d96a'
+    elif i < 20000:
+        return '#fee08b'
+    elif i < 25000:
+        return '#fdae61'
+    elif i < 30000:
+        return '#f46d43'
     else:
-        return '#003300'
+        return '#d73027'
 
 def empty_file(file_loc):
     open(file_loc, 'w').close()
 
-def write_to_files(cens, clus):
+def write_to_files(cens, clus, counts):
     empty_file(POINTS_FILE)
     empty_file(HULLS_FILE)
 
@@ -121,8 +153,8 @@ def write_to_files(cens, clus):
         hull = qhull(cluster)
 
         for clu in cluster:
-            pt_code = 'L.circleMarker([' + str(clu[0]) + ', ' + str(clu[1]) + '], {radius: r, color: \'' + get_color(i) + '\', opacity: o}).addTo(map);\n'
-            append_to_file('points.txt', pt_code)
+            pt_code = 'L.circleMarker([' + str(clu[0]) + ', ' + str(clu[1]) + '], {radius: r, color: \'' + get_color(counts[str(clu[0]) + '|' + str(clu[1])]) + '\', opacity: o}).addTo(map);\n'
+            append_to_file(POINTS_FILE, pt_code)
 
         hull_code = 'L.polygon([['
         for vertex in hull:
@@ -130,13 +162,69 @@ def write_to_files(cens, clus):
         hull_code = hull_code[:-3] + ']).addTo(map);\n'
         append_to_file('hulls.txt', hull_code)
 
+def reformat_aggr(drugs_per_clus):
+    reformat = {}
+
+    for clus in drugs_per_clus:
+        clus_str = str(clus + 1)
+        start = False
+        first = 0
+        if clus_str not in reformat:
+            reformat[clus_str] = {}
+            reformat[clus_str]['label'] = 'Cluster ' + clus_str
+            reformat[clus_str]['data'] = []
+        qtrs = drugs_per_clus[clus].keys()
+        qtrs.sort()
+        for qtr in qtrs:
+            if not start:
+                first = int(drugs_per_clus[clus][qtr])
+                start = True
+            reformat[clus_str]['data'].append([qtr, first - int(drugs_per_clus[clus][qtr])])
+
+    return reformat
+
+def get_clus_aggr(lines, clus, zips):
+    drug_by_zip = {}
+    drugs_per_clus = {}
+
+    for line in lines:
+        qtr, zip_c, cnt = re.split('\t|\|', line)
+        if zip_c not in drug_by_zip:
+            drug_by_zip[zip_c] = {}
+        drug_by_zip[zip_c][qtr] = float(cnt)
+    for i in range(0, len(clus)):
+        for coordi in clus[i]:
+            zip_code = zips[str(coordi[0]) + '|' + str(coordi[1])]
+            drug = drug_by_zip[zip_code]
+            qtrs = drug.keys()
+            qtrs.sort()
+            for qtr in qtrs:
+                if i in drugs_per_clus:
+                    if qtr in drugs_per_clus[i]:
+                        drugs_per_clus[i][qtr] += drug[qtr]
+                    else:
+                        drugs_per_clus[i][qtr] = drug[qtr]
+                else:
+                    drugs_per_clus[i] = {}
+                    drugs_per_clus[i][qtr] = drug[qtr]
+
+    return drugs_per_clus
+
 def get_coordi(lines):
     coordi = []
+    counts = {}
+    zips = {}
+
     for line in lines:
         tokens = line.strip().split()
-        if len(tokens) >= 3:
-            coordi.append([float(tokens[1].strip()), float(tokens[2].strip())])
-    return coordi
+        if len(tokens) >= 4:
+            x = float(tokens[1].strip())
+            y = float(tokens[2].strip())
+            coordi.append([x, y])
+            counts[str(x) + '|' + str(y)] = int(tokens[3].strip())
+            zips[str(x) + '|' + str(y)] = tokens[0]
+
+    return coordi, counts, zips
 
 def read_file(file_loc):
     content = []
@@ -148,11 +236,16 @@ def read_file(file_loc):
     return content
 
 def main():
-    lines = read_file('CX.txt')
-    X = get_coordi(lines)
-    K = 5
+    lines = read_file('zip_coordi_lkp')
+    X, counts, zips = get_coordi(lines)
+    K = 7
     cens, clus = find_centers(X, K)
-    write_to_files(cens, clus)
+    lines = read_file('../mapreduce/drug_by_quarter')
+    drugs_per_clus = get_clus_aggr(lines, clus, zips)
+    drugs_per_clus, epsilons = predict_all(drugs_per_clus, 5)
+    print reformat_aggr(drugs_per_clus)
+    print epsilons
+    write_to_files(cens, clus, counts)
 
 if __name__ == '__main__':
     main()

@@ -41,7 +41,7 @@ def group_by_year_zip_ndc(inp):
     print '{0}\t{1}'.format(old_grp, total_count)
 
 def reducer():
-    unique(sys.stdin)
+    #unique(sys.stdin)
     group_by_year_zip_ndc(sys.stdin)
 
 if __name__ == '__main__':
