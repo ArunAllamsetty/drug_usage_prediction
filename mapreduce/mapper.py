@@ -3,11 +3,11 @@
 from ast import literal_eval as le
 import sys
 
-def unique_ndc(inp):
+def unique(inp, field):
     for line in inp:
         record = le(line.strip())
-        if 'ndc' in record:
-            print '{0}\t{1}'.format(record['ndc'], 1)
+        if field in record:
+            print '{0}\t{1}'.format(record[field], 1)
 
 def group_by_year_zip_ndc(inp):
     for line in inp:
@@ -16,8 +16,8 @@ def group_by_year_zip_ndc(inp):
             print '{0}|{1}|{2}\t{3}'.format(record['dispenseQuarter'].strip(), record['threeDigitSubsZip'].strip(), record['ndc'].strip(), record['untsDispensedQuantity'].strip())
 
 def mapper():
-    #unique_ndc(sys.stdin)
-    group_by_year_zip_ndc(sys.stdin)
+    unique(sys.stdin, 'dispenseQuarter')
+    #group_by_year_zip_ndc(sys.stdin)
 
 if __name__ == '__main__':
     mapper()

@@ -1,24 +1,24 @@
 import sys
 
-def unique_ndc(inp):
+def unique(inp):
     total_count = 0
-    old_ndc = None
+    old_field = None
 
     for line in inp:
         data = line.strip().split('\t')
         if len(data) != 2:
             continue
 
-        this_ndc, this_count = data
+        this_field, this_count = data
 
-        if old_ndc and old_ndc != this_ndc:
-            print '{0}\t{1}'.format(old_ndc, total_count)
+        if old_field and old_field != this_field:
+            print '{0}\t{1}'.format(old_field, total_count)
             total_count = 0
 
-        old_ndc = this_ndc
+        old_field = this_field
         total_count += int(this_count)
 
-    print '{0}\t{1}'.format(old_ndc, total_count)
+    print '{0}\t{1}'.format(old_field, total_count)
 
 def group_by_year_zip_ndc(inp):
     total_count = 0
@@ -41,7 +41,7 @@ def group_by_year_zip_ndc(inp):
     print '{0}\t{1}'.format(old_grp, total_count)
 
 def reducer():
-    #unique_ndc(sys.stdin)
+    unique(sys.stdin)
     group_by_year_zip_ndc(sys.stdin)
 
 if __name__ == '__main__':
