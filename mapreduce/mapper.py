@@ -13,7 +13,7 @@ def group_by_year_zip_ndc(inp):
     for line in inp:
         record = le(line.strip())
         if 'dispenseQuarter' in record and 'threeDigitSubsZip' in record and 'ndc' in record and 'untsDispensedQuantity' in record:
-            print '{0}|{1}|{2}\t{3}'.format(record['dispenseQuarter'].strip()[:-2], record['threeDigitSubsZip'].strip(), record['ndc'].strip(), record['untsDispensedQuantity'].strip())
+            print '{0}|{1}|{2}\t{3}'.format(record['dispenseQuarter'].strip(), record['threeDigitSubsZip'].strip(), record['ndc'].strip(), record['untsDispensedQuantity'].strip())
 
 def mapper():
     #unique_ndc(sys.stdin)
