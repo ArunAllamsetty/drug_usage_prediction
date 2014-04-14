@@ -1,0 +1,4 @@
+#! \bin\bash
+echo "hi shell"
+which Rscript
+/home/senguttu/public_html/drug/viz/myRscript /home/senguttu/public_html/drug/viz/loess.R 
