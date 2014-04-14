@@ -93,14 +93,12 @@ def plot_hull(hull, sample):
 # Prediction
 ############################################################################################################
 
-#FUNC: Predicts the value of the point specified by 'index'
 def predict(ys, index, data):
     y_predicted = 0
     for i in range(index, 1, -1):
         y_predicted += data[str(i - 1)] * (i - 1)
     return y_predicted / sum(range(1, index))
 
-#FUNC: Predicts the values for all the clusters.
 def predict_all(drugs_per_clus, index):
     epsilons = {}
 
