@@ -150,7 +150,7 @@ def read_file(file_loc):
 def main():
     lines = read_file('CX.txt')
     X = get_coordi(lines)
-    K = 15
+    K = 5
     cens, clus = find_centers(X, K)
     write_to_files(cens, clus)
 
